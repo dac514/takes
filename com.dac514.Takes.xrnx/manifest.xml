@@ -2,7 +2,7 @@
 <RenoiseScriptingTool doc_version="0">
   <ApiVersion>6.2</ApiVersion>
   <Id>com.dac514.Takes</Id>
-  <Version>0.14</Version>
+  <Version>0.15</Version>
   <Author>dac514</Author>
   <Name>Takes</Name>
   <Category>Recording, Pattern, Workflow</Category>
