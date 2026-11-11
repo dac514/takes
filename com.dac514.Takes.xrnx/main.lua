@@ -2,9 +2,9 @@
   Entry point. Renoise runs this file once every time the tool is (re)loaded.
 
   Keep it thin and idempotent:
-  * Preferences are created here, once. `src/` reads them through
-    `renoise.tool().preferences`, so a dev-bridge soft reload (which re-requires
-    `src/` without re-running this file) never creates a second document.
+  * The tool has no preferences yet. If it gets some, create the document
+    here, once: a dev-bridge soft reload re-requires `src/` without re-running
+    this file, so `src/` must only read `renoise.tool().preferences`.
   * Behaviour lives in `src/app.lua` and is started with `APP.start()`.
   * The dev bridge in `dev/` is loaded only when present. `just package` strips
     `dev/`, so released builds never reference it.
@@ -24,14 +24,6 @@ package.path = bundle_path .. "?.lua;" .. package.path
 -- `just reload` does a full reload through OSC instead. Enable it if you edit in
 -- an external editor and like alt-tab reloads.
 _AUTO_RELOAD_DEBUG = false
-
--- Preferences: created once per tool load; Renoise persists them as
--- preferences.xml inside the tool folder.
-if not renoise.tool().preferences then
-  renoise.tool().preferences = renoise.Document.create "MyToolPreferences" {
-    greeting = "Hello from My Tool",
-  }
-end
 
 -- The application module is a deliberate global so the dev bridge can reach it
 -- (`APP.dialogs`, `APP.stop()`, `APP.start()`).

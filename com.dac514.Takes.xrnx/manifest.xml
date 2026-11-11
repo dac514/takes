@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<RenoiseScriptingTool doc_version="0">
+  <ApiVersion>6.2</ApiVersion>
+  <Id>com.dac514.Takes</Id>
+  <Version>0.14</Version>
+  <Author>dac514</Author>
+  <Name>Takes</Name>
+  <Category>Recording, Pattern, Workflow</Category>
+  <Description>Record several passes over a loop as takes, then build the best version from them. Early test version.</Description>
+  <Platform>Windows, Mac, Linux</Platform>
+  <License>MIT</License>
+  <DocumentationPath>README.md</DocumentationPath>
+  <Homepage>https://github.com/dac514/takes</Homepage>
+</RenoiseScriptingTool>

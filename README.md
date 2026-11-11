@@ -1,83 +1,45 @@
-# ReSlop
+# Takes
 
-Build Renoise tools with a coding assistant doing the typing.
+Comping for [Renoise](https://www.renoise.com). Record several passes over a loop, keep every
+pass as a take, then build the best version from the takes.
 
-Renoise tools are small Lua scripts (`.xrnx` files) that add menus, dialogs and
-new tricks to [Renoise](https://www.renoise.com). ReSlop is a starter kit for
-making them. You get a little tool that already works, the complete Renoise API
-reference in a form your editor and coding assistants can read, and a bridge
-that lets an assistant run code inside your running Renoise, inspect your
-dialogs and reload your tool without you lifting a finger.
+![The Takes window with six takes](docs/takes-view.png)
 
-Yes, the name is a joke. The tools you make with it don't have to be.
+Renoise overwrites what you played when a loop comes around. Takes keeps each pass instead.
+The takes stand side by side as lanes, with time running downward like the pattern editor.
+You listen to them, swipe over the parts you like, and the result goes back into the pattern.
 
-Questions or ideas? There is a
-[thread on the Renoise forum](https://forum.renoise.com/t/reslop-a-template-to-build-claude-code-tools/79678).
+- **Notes and parameter moves.** A take holds the note columns, the effect columns and the
+  automation of the armed track. You can use the notes of one take and the filter sweep of another.
+- **One pattern or several.** Loop a single pattern, or a range of patterns in the sequencer.
+- **Nothing is lost.** Notes that were already in the track become take 1. If you edit the
+  track by hand, that edit becomes a take too.
+- **Saved in the song.** The takes travel with the song file. Open the song next week and keep comping.
 
-<!-- template:start -->
-## Your first tool in five minutes
+This is an early version. It works, and it has rough edges: read "Good to know" in the user guide.
 
-Prefer to watch? The video walks through everything below, start to finish.
+## Install
 
-[![Watch the demo on YouTube](https://img.youtube.com/vi/DR_vuVzrXCU/maxresdefault.jpg)](https://www.youtube.com/watch?v=DR_vuVzrXCU)
+Download `com.dac514.Takes.xrnx` from the [releases](https://github.com/dac514/takes/releases)
+and drag it onto the Renoise window. Renoise 3.5 is needed.
 
-You need three things: Renoise 3.5 (the demo works), a coding assistant
-([Claude Code](https://claude.com/claude-code), Copilot CLI, or GitHub Copilot
-in your IDE), and a GitHub account. No Lua experience required. No terminal
-experience required either, though it never hurts.
+## Use
 
-1. **Click "Use this template"** at the top of this page and give your
-   repository a name. Then get it onto your computer (GitHub Desktop is fine,
-   or `git clone`).
-2. **Let Renoise listen.** In Renoise, open *Edit → Preferences → OSC* and tick
-   *Enable Server*. Keep the defaults (UDP, port 8000). This is how the kit
-   installs and reloads your tool without anyone clicking through menus.
-3. **Open the folder in Claude Code, Copilot CLI, or GitHub Copilot and ask
-   for a setup.** Something like:
+The user guide is [com.dac514.Takes.xrnx/README.md](com.dac514.Takes.xrnx/README.md).
+Renoise shows the same text in its tool browser. In short:
 
-   > Set this project up for me. Install anything that's missing, name the tool
-   > com.yourname.ToolName, and check that you can talk to my Renoise.
+1. Loop a pattern, or a range of patterns.
+2. Put the cursor in a track, open **Tools > Takes...** and press **Arm**.
+3. Play with edit mode on. Each pass of the loop becomes a take.
+4. Swipe down a take lane to use those lines. Click a take title to hear that take alone.
+5. Press **Done**. The pattern keeps the result.
 
-   Your assistant installs the formatter, the type checker and the task runner,
-   renames the example tool, puts it into Renoise, and reports back when it can
-   see your song. If it needs a password for an install, it will ask.
-4. **Ask for a feature.** "Add a button that doubles the BPM." "Make a dialog
-   that lists every instrument." Your assistant writes the Lua, checks it
-   against the Renoise API, reloads the tool inside Renoise, and shows you the
-   dialog it made.
+How it works inside, what was measured, and what is still open: [docs/comping.md](docs/comping.md).
 
-That is the whole workflow. The rest of this page is for the curious and the
-hands-on.
-<!-- template:end -->
+## Working on the tool
 
-## What's in the box
-
-```
-<Id>.xrnx/            your tool: manifest.xml, main.lua, src/ (logic and dialog), dev/ (the bridge)
-scripts/renoise.py    one small Python script that does all the chores below
-justfile              short names for the chores, so you can type `just reload`
-tests/                unit tests that run without Renoise (`just test`)
-definitions/          the Renoise API, annotated, for the type checker and coding assistants
-docs/                 setup steps and renoise.com rules, for your assistant
-docs/renoise/         the Renoise scripting guide, offline
-CLAUDE.md             the canonical briefing for Claude Code
-UPGRADING.md          bring later kit fixes into a project made from an older ReSlop
-.github/              instructions for GitHub Copilot and Copilot CLI
-.github/workflows/    checks on every push; a release with the .xrnx on every tag
-.vscode/              VS Code: recommended extensions (Lua, StyLua, just) and format on save
-```
-
-The example tool adds *Tools → My Tool...* to Renoise's menu. Its dialog shows
-the song name, a live BPM read-out, a track count that follows the song, a text
-field that remembers what you type, and a button. It is small on purpose: it
-shows the patterns, then gets out of the way. The label text lives in a plain
-Lua module with a unit test next to it, so you can see how to test logic
-without a running Renoise.
-
-## Doing it by hand
-
-If you would rather type the commands yourself, this is what the setup prompt
-does for you.
+This project was started from the [ReSlop](https://github.com/dac514/reslop) starter kit.
+Its tooling formats, checks, installs and reloads the tool while Renoise runs.
 
 Install five things: [just](https://github.com/casey/just) (runs the chores),
 [StyLua](https://github.com/JohnnyMorganz/StyLua) (formats Lua),
@@ -97,9 +59,8 @@ Then:
 
 ```
 just doctor      # lists what is missing and where to get it
-just init com.yourname.ToolName "Tool Name" "Your Name [you@example.com]"
 just install     # Renoise copies the tool into its Tools folder and loads it
-just ping        # ok bridge at 127.0.0.1:18xxx, tool_id=com.yourname.ToolName ...
+just ping        # ok bridge at 127.0.0.1:18xxx, tool_id=com.dac514.Takes ...
 ```
 
 No `just` yet? Every recipe is a one-liner around the script, so

@@ -11,16 +11,23 @@
     `renoise.app().theme` raises an error. Register `renoise.app()`
     observables when a dialog first opens instead.
   * Wrap callbacks that Renoise invokes with `App.guard` so errors reach the
-    dev log.
+    dev log. Use `App.safe` for timers: it logs and does not raise again.
+  * Things that live shorter than the tool (a dialog, a session) register
+    through `App.reg.scope()` and release the scope when they end.
   * Inside song list notifiers, read dependents through `App.defer`.
 ]]
 
 local App = {}
 
----@class MyToolPreferences : renoise.Document.DocumentNode
----@field greeting renoise.Document.ObservableString
+---The comping session module (`src/session.lua`), set by `App.start`.
+---@type table?
+App.session = nil
 
-App.name = "My Tool"
+---Handlers of the open lanes view, so that `just eval` can drive it without a mouse.
+---@type table?
+App.ui = nil
+
+App.name = "Takes"
 App.menu_entry = "Main Menu:Tools:" .. App.name .. "..."
 App.keybinding = "Global:Tools:Show " .. App.name
 
@@ -28,6 +35,7 @@ App.keybinding = "Global:Tools:Show " .. App.name
 ---@field dialog renoise.Dialog
 ---@field vb renoise.ViewBuilder
 ---@field root renoise.Views.View
+---@field scope AppScope? Released when the dialog closes.
 
 ---Registered dialogs by name. Read by the dev bridge's `views` command.
 ---@type table<string, AppDialogEntry>
@@ -48,11 +56,6 @@ end
 ---@param text string
 function App.log(text)
   App.log_sink("app", text)
-end
-
----@return MyToolPreferences
-function App.prefs()
-  return renoise.tool().preferences --[[@as MyToolPreferences]]
 end
 
 ---Wrap a callback so that errors are logged before being re-raised.
@@ -79,6 +82,34 @@ function App.guard(fn)
   end
 end
 
+---Wrap a callback so that errors are logged and not raised again. Use it for
+---timers: a timer that raises on every tick would open an error popup each time.
+---@param fn function
+---@param on_error fun()? Called once, after the first error.
+---@return function
+function App.safe(fn, on_error)
+  local failed = false
+  return function(...)
+    local n = select("#", ...)
+    local args = { ... }
+    local ok, err = xpcall(function()
+      return fn(unpack(args, 1, n))
+    end, function(e)
+      return debug.traceback(tostring(e), 2)
+    end)
+    if not ok and not failed then
+      failed = true
+      App.log_sink("error", tostring(err))
+      if on_error then
+        local handled, why = pcall(on_error)
+        if not handled then
+          App.log_sink("error", "the error handler failed too: " .. tostring(why))
+        end
+      end
+    end
+  end
+end
+
 -- Registration ---------------------------------------------------------------
 
 ---Registration helpers. Everything registered here is undone by `App.stop()`.
@@ -91,6 +122,8 @@ local reg = {
   notifiers = {},
   ---@type function[]
   timers = {},
+  ---@type table<AppScope, boolean>
+  scopes = {},
 }
 App.reg = reg
 
@@ -133,6 +166,70 @@ function reg.timer(fn, interval_ms)
   end
   tool:add_timer(fn, interval_ms)
   table.insert(reg.timers, fn)
+end
+
+---@class AppScope
+---@field notifier fun(observable: renoise.Document.Observable, fn: function)
+---@field timer fun(fn: function, interval_ms: integer)
+---@field add fun(undo: fun()) Register any other cleanup, for example a pattern line notifier.
+---@field release fun() Undo everything. Safe to call twice.
+
+---A group of registrations that ends before the tool does: a dialog or a
+---session. `App.stop()` releases every scope that is still open.
+---@return AppScope
+function reg.scope()
+  ---@type fun()[]
+  local undo = {}
+  ---@type AppScope
+  local scope
+  scope = {
+    notifier = function(observable, fn)
+      observable:add_notifier(fn)
+      undo[#undo + 1] = function()
+        if observable:has_notifier(fn) then
+          observable:remove_notifier(fn)
+        end
+      end
+    end,
+    timer = function(fn, interval_ms)
+      local tool = renoise.tool()
+      tool:add_timer(fn, interval_ms)
+      undo[#undo + 1] = function()
+        if tool:has_timer(fn) then
+          tool:remove_timer(fn)
+        end
+      end
+    end,
+    add = function(fn)
+      undo[#undo + 1] = fn
+    end,
+    release = function()
+      local list = undo
+      undo = {}
+      for i = #list, 1, -1 do
+        pcall(list[i]) -- the observable may belong to a song that no longer exists
+      end
+      reg.scopes[scope] = nil
+    end,
+  }
+  reg.scopes[scope] = true
+  return scope
+end
+
+---Number of live registrations, to check for leaks after a reload.
+---@return { menus: integer, keys: integer, notifiers: integer, timers: integer, scopes: integer }
+function reg.counts()
+  local scopes = 0
+  for _ in pairs(reg.scopes) do
+    scopes = scopes + 1
+  end
+  return {
+    menus = #reg.menus,
+    keys = #reg.keys,
+    notifiers = #reg.notifiers,
+    timers = #reg.timers,
+    scopes = scopes,
+  }
 end
 
 -- Deferral -------------------------------------------------------------------
@@ -184,6 +281,9 @@ function App.close_dialogs()
     if entry.dialog.visible then
       entry.dialog:close()
     end
+    if entry.scope then
+      entry.scope.release()
+    end
     App.dialogs[name] = nil
   end
 end
@@ -195,15 +295,33 @@ function App.show_dialog()
     existing.dialog:show()
     return
   end
+  if existing and existing.scope then
+    existing.scope.release() -- the user closed the window: drop its timer and notifiers
+  end
   local ui = require "src.ui"
-  local vb, root = ui.build(App)
-  local dialog = renoise.app():show_custom_dialog(App.name, root)
+  local vb, root, handlers = ui.build(App)
+  handlers = handlers or {}
+  local dialog = renoise.app():show_custom_dialog(
+    App.name,
+    root,
+    handlers.key_handler,
+    handlers.key_options,
+    handlers.focus_handler
+  )
   App.register_dialog("main", dialog, vb, root)
+  App.dialogs.main.scope = handlers.scope
+  if handlers.attach then
+    handlers.attach(dialog)
+  end
+  App.ui = handlers
 end
 
 -- Lifecycle ------------------------------------------------------------------
 
 function App.start()
+  local session = require "src.session"
+  session.init(App)
+  App.session = session
   reg.menu {
     name = App.menu_entry,
     invoke = App.guard(App.show_dialog),
@@ -213,12 +331,27 @@ function App.start()
     invoke = App.guard(App.show_dialog),
   }
   -- Close dialogs when the song changes so no view keeps stale song references.
-  reg.notifier(renoise.tool().app_new_document_observable, App.close_dialogs)
+  local tool = renoise.tool()
+  reg.notifier(tool.app_new_document_observable, App.close_dialogs)
+  -- The takes live in the song (`tool_data`): write them before a save, and
+  -- forget the old song's state when the song goes away.
+  reg.notifier(tool.app_will_save_document_observable, App.guard(session.save))
+  reg.notifier(tool.app_release_document_observable, App.guard(session.release))
+  -- A full reload does not call `App.stop()`: keep the takes in the song here.
+  reg.notifier(tool.tool_will_unload_observable, function()
+    pcall(session.shutdown)
+  end)
   App.log "started"
 end
 
 function App.stop()
+  if App.session then
+    pcall(App.session.shutdown) -- keep the takes in the song across a reload
+  end
   App.close_dialogs()
+  for scope in pairs(reg.scopes) do
+    scope.release()
+  end
   local tool = renoise.tool()
   for _, name in ipairs(reg.menus) do
     if tool:has_menu_entry(name) then

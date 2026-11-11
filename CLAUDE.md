@@ -6,7 +6,7 @@ command-line tooling to format, type-check, install, reload and inspect it while
 ## What you are working on
 
 - The tool is the single `*.xrnx/` folder in the repo root
-  (`com.example.MyTool.xrnx/` until `just init` renames it). Everything else is tooling.
+  (`com.dac514.Takes.xrnx/`). Everything else is tooling.
 - Lua dialect: **LuaJIT** = Lua 5.1 syntax (`unpack`, `loadstring`, `setfenv`;
   `bit` is built in; no `goto`, no `//`, no integer subtype).
 - Renoise API version **6.2** (Renoise 3.5). The API reference is vendored in
@@ -46,7 +46,7 @@ first line; exit codes: 0 ok, 1 remote/Lua error, 2 usage, 3 cannot connect,
 2. `just check`, and `just test` when a pure module or a test changed. Fix everything they report before reloading.
 3. `just reload`. `just reload-soft` is faster for `src/`-only edits, within the limits in the table.
 4. Verify inside the running Renoise: `just eval 'APP.show_dialog()'`, `just views`,
-   `just eval 'dev.set("greeting", "x")'`, `just log`, `just screenshot`. Do not report a GUI
+   `just eval 'return APP.session.summary()'`, `just log`, `just screenshot`. Do not report a GUI
    change as working until `views` (and, for layout, a screenshot) shows it.
 5. `just check` again, then commit.
 
@@ -87,9 +87,13 @@ docs/renoise/                 vendored xrnx guide pages (start/, guide/)
 <Id>.xrnx/manifest.xml        Id, Version, ApiVersion (rules under Hard constraints)
 <Id>.xrnx/cover.png           optional renoise.com cover (600x350), with thumbnail.png (120x45)
 <Id>.xrnx/main.lua            thin entry: package.path, preferences, APP = require "src.app", APP.start(), dev bridge
-<Id>.xrnx/src/app.lua         App.start/stop, App.reg (menu/key/notifier/timer), App.register_dialog, App.guard, App.defer
-<Id>.xrnx/src/ui.lua          ViewBuilder dialog; returns (vb, root)
-<Id>.xrnx/src/labels.lua      pure Lua (no renoise.*): the dialog's label strings; the unit-tested example
+<Id>.xrnx/src/app.lua         App.start/stop, App.reg (menu/key/notifier/timer, scopes), App.register_dialog, App.guard, App.safe, App.defer
+<Id>.xrnx/src/session.lua     the comping session: arm, record, audition, save; matrix slot colours
+<Id>.xrnx/src/pattern_io.lua  reads and writes the armed pattern track (notes, effect columns, automation)
+<Id>.xrnx/src/ui.lua          the lanes view: canvas dialog, mouse and keys; returns (vb, root, handlers)
+<Id>.xrnx/src/*.lua (pure)    timeline, passes, takes, envelopes, codec, pixelfont, layout, labels: no renoise.*, each with a test
+scripts/make_art.py           draws cover.png and thumbnail.png from the tool's own font and colours (needs Pillow)
+docs/comping.md               how Takes works, what was measured, what is still open: read it before changing the engine
 tests/helper.lua              test helpers for tests/*_test.lua
 <Id>.xrnx/dev/                dev bridge (bridge.lua, commands.lua, serialize.lua, home_port.lua); never shipped
 ```
@@ -125,7 +129,7 @@ tests/helper.lua              test helpers for tests/*_test.lua
   `sequencer.pattern_sequence_observable`, `phrase_mappings_observable`) fire *during* the edit:
   the list is updated, dependents (pattern tracks, sequence, selection) are not, and they also
   fire on undo/redo. Inside them never edit the song; observe the dependent object if it has an
-  observable, else `App.defer(fn)`. Demo: the tracks row in `src/ui.lua`.
+  observable, else `App.defer(fn)`.
 - ViewBuilder constructor tables accept only documented fields; a typo such as
   `vb:text { margin = 1 }` crashes at runtime and LuaLS cannot catch it.
 - Manifest: `Id` must equal the folder name without `.xrnx`; `Version` is a
