@@ -16,7 +16,10 @@ You listen to them, swipe over the parts you like, and the result goes back into
   track by hand, that edit becomes a take too.
 - **Saved in the song.** The takes travel with the song file. Open the song next week and keep comping.
 
-This is an early version. It works, and it has rough edges: read "Good to know" in the user guide.
+A few things work differently from what you might guess. The user guide lists them under
+"Good to know", so you can read about them before they surprise you. Found
+something else? Say so in the [forum thread](https://forum.renoise.com/t/new-tool-3-5-ai-takes/79881)
+or [open an issue](https://github.com/dac514/takes/issues).
 
 ## Install
 

@@ -3,9 +3,6 @@
 Record several passes over a loop in Renoise. Every pass is kept as a take.
 Then build the best version from the takes, and keep it in the pattern.
 
-This is an early test version. It works, but it is not finished. Please try it on a copy
-of your song, and say what you think.
-
 ## Install
 
 Drag the `.xrnx` file onto the Renoise window. Renoise 3.5 is needed.
@@ -86,8 +83,10 @@ Other keys go to Renoise, so Space still starts and stops the song.
 
 ## Feedback
 
-Please send your notes to the person who gave you this tool. These points help most:
+Comments, ideas and bug reports are welcome in the
+[forum thread](https://forum.renoise.com/t/new-tool-3-5-ai-takes/79881) or on
+[GitHub](https://github.com/dac514/takes/issues). These reports help most:
 
-- Did a note end up in the wrong take, or get lost?
-- What did you try to do that the view did not let you do?
-- Your tempo, lines per beat, and pattern length when something went wrong.
+- A note ended up in the wrong take, or went missing.
+- The view did not let you do what you tried to do.
+- Something went wrong. Please add your tempo, lines per beat and pattern length.

@@ -2,11 +2,11 @@
 <RenoiseScriptingTool doc_version="0">
   <ApiVersion>6.2</ApiVersion>
   <Id>com.dac514.Takes</Id>
-  <Version>0.15</Version>
-  <Author>dac514</Author>
+  <Version>0.16</Version>
+  <Author>Dac Chartrand [dac.chartrand@gmail.com]</Author>
   <Name>Takes</Name>
   <Category>Recording, Pattern, Workflow</Category>
-  <Description>Record several passes over a loop as takes, then build the best version from them. Early test version.</Description>
+  <Description>Record several passes over a loop as takes, then build the best version from them.</Description>
   <Platform>Windows, Mac, Linux</Platform>
   <License>MIT</License>
   <DocumentationPath>README.md</DocumentationPath>
