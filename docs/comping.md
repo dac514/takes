@@ -108,13 +108,12 @@ which records them like notes from a keyboard.
 | Is a recording safe from "New session" and from a save? | Yes. Both end the recording first, so the track gets its notes back. A save then lets the recording start again. |
 | What if tracks are inserted or deleted? | The session keeps the track itself, not its number. It followed the track when another one was inserted on its left. |
 | Which take do you hear after a recording? | The newest pass that was played to its end. The pass that the stop cut off is kept as a take. |
+| Does the tool load when Renoise starts? | Yes. Version 0.16 loaded with no error after a fresh start of Renoise. |
 
 ## Not verified yet
 
 These need a person at the keyboard. I could not test them from the command line.
 
-- **Automated mouse tests.** Swipes are tested by calling the mouse handler with made-up events.
-  A person has used the real mouse since, and it works.
 - **Undo.** Writes from a timer did not show as separate undo steps in my tests. They joined
   one step that closed at the next user action. Check what Ctrl+Z does after a recording.
 - **Hanging notes.** When you switch takes during a long note, the note may keep sounding
@@ -122,7 +121,6 @@ These need a person at the keyboard. I could not test them from the command line
 - **Keyboard focus.** Notes from the computer keyboard need the focus in the pattern editor.
   MIDI notes should record while the view has focus, but this was not tested.
 - **MIDI controllers.** Pitch bend and the modulation wheel were not tested.
-- **A fresh start of Renoise.** The tool was only loaded into a running Renoise.
 
 ## Limits of the prototype
 
@@ -142,5 +140,7 @@ These need a person at the keyboard. I could not test them from the command line
   pattern, with its old notes.
 - Never use `PatternTrack:clear()` in the capture. It also deletes the automation.
 - Set transport values, then read them in a later call. Renoise applies them a moment later.
+- Swipes are tested by calling the mouse handler with made-up events. The real mouse was only
+  checked by hand. A test that drives the real mouse would catch more.
 - Next features worth a look: several tracks in one session, a block loop, a curve view with
   one colour for each parameter, and take names.
